@@ -165,3 +165,14 @@ internal class JSONSerializer {
     }
 
 }
+
+extension Dictionary {
+    func stringify() -> String {
+        do {
+            let data = try JSONSerialization.data(withJSONObject: self, options: .init(rawValue: 0))
+            return String(data: data, encoding: String.Encoding.utf8) ?? ""
+        } catch {
+            return ""
+        }
+    }
+}
