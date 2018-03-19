@@ -187,8 +187,8 @@ struct ChatMessage {
     
     func attributedString() -> NSAttributedString {
         let messageString: String = "\(self.name) \(self.message)"
-        let nameRange = NSRange(location: 0, length: self.name.characters.count)
-        let nonNameRange = NSRange(location: nameRange.length, length: messageString.characters.count - nameRange.length)
+        let nameRange = NSRange(location: 0, length: self.name.count)
+        let nonNameRange = NSRange(location: nameRange.length, length: messageString.count - nameRange.length)
         
         let string: NSMutableAttributedString = NSMutableAttributedString(string: messageString)
         string.addAttribute(NSAttributedStringKey.font,
