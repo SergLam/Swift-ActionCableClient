@@ -152,7 +152,7 @@ internal class JSONSerializer {
                   messageError = error
                 }
                 
-                return Message(channelName: channelName!,
+                return Message(channelName: channelName ?? "ConversationChannel",
                                actionName: messageActionName,
                                messageType: MessageType.message,
                                data: messageValue,
