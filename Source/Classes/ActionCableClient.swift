@@ -69,8 +69,10 @@ open class ActionCableClient {
     open var onChannelReceive: ((Channel, Any?, Swift.Error?) -> Void)?
     
     //MARK: Properties
-    open var isConnected : Bool { return socket.isConnected }
-    open var url: Foundation.URL { return socket.currentURL }
+    open var isConnected : Bool = false
+    open var url: Foundation.URL {
+        return socket.request.url ?? URL(fileURLWithPath: "")
+    }
     open var headers : [String: String]? {
         get { return socket.request.allHTTPHeaderFields }
         set {
@@ -93,7 +95,8 @@ open class ActionCableClient {
 
   public required init(url: URL) {
         /// Setup Initialize Socket
-        socket = WebSocket(url: url)
+        let request = URLRequest(url: url)
+        socket = WebSocket(request: request)
         setupWebSocket()
 }
     
@@ -133,7 +136,7 @@ open class ActionCableClient {
     /// Disconnect from the server.
     open func disconnect() {
         manualDisconnectFlag = true
-        socket.disconnect(forceTimeout: 0)
+        socket.disconnect()
     }
     
     internal func reconnect() {
@@ -323,11 +326,50 @@ extension ActionCableClient {
 extension ActionCableClient {
     
     fileprivate func setupWebSocket() {
-        self.socket.onConnect = { [weak self] in self!.didConnect() } as (() -> Void)
-        self.socket.onDisconnect = { [weak self] (error: Swift.Error?) in self!.didDisconnect(error) }
-        self.socket.onText       = { [weak self] (text: String) in self!.onText(text) }
-        self.socket.onData       = { [weak self] (data: Data) in self!.onData(data) }
-        self.socket.onPong       = { [weak self] (data: Data?) in self!.didPong() }
+        
+        socket.onEvent = { [weak self] event in
+            
+            switch event {
+            case .connected(_):
+                self?.isConnected = true
+                self?.didConnect()
+                
+            case .disconnected(let reason, let code):
+                
+                let userInfo: [String: Any] = [NSLocalizedDescriptionKey: reason,
+                                               NSLocalizedFailureReasonErrorKey: reason]
+                let error: NSError = NSError(domain: "com.action-cable.serg-lam", code: Int(code), userInfo: userInfo)
+                self?.didDisconnect(error)
+                
+            case .text(let text):
+                self?.onText(text)
+                
+            case .binary(let data):
+                self?.onData(data)
+                
+            case .pong:
+                self?.didPong()
+                
+            case .ping:
+                self?.onPing?()
+                
+            case .error(let error):
+                self?.isConnected = false
+                guard let err = error else {
+                    self?.onDisconnected?(ConnectionError.none)
+                    return
+                }
+                self?.onDisconnected?(ConnectionError.unknown(err))
+                
+            case .viabilityChanged:
+                break
+            case .reconnectSuggested:
+                break
+            case .cancelled:
+                self?.isConnected = false
+            }
+        }
+        
     }
     
     fileprivate func didConnect() {
@@ -360,7 +402,7 @@ extension ActionCableClient {
         // Attempt Reconnection?
         if let unwrappedError = error {
           connectionError = ConnectionError(from: unwrappedError)
-            attemptReconnect = connectionError!.recoverable
+            attemptReconnect = connectionError?.recoverable ?? true
         }
         
         // Reconcile reconncetion attempt with manual disconnect
@@ -492,14 +534,16 @@ extension ActionCableClient {
 
 extension ActionCableClient : CustomDebugStringConvertible {
     public var debugDescription : String {
-        return "ActionCableClient(url: \"\(socket.currentURL)\" connected: \(socket.isConnected) id: \(Unmanaged.passUnretained(self).toOpaque()))"
+        return "ActionCableClient(url: \"\(String(describing: socket.request.url))\" connected: \(isConnected) id: \(Unmanaged.passUnretained(self).toOpaque()))"
     }
 }
 
-extension ActionCableClient : CustomPlaygroundQuickLookable {
-    public var customPlaygroundQuickLook: PlaygroundQuickLook {
-        return PlaygroundQuickLook.url(socket.currentURL.absoluteString)
+extension ActionCableClient : CustomPlaygroundDisplayConvertible {
+    
+    public var playgroundDescription: Any {
+        return socket.request.url?.absoluteString ?? ""
     }
+    
 }
 
 extension ActionCableClient {

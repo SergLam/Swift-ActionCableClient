@@ -47,8 +47,9 @@ internal class JSONSerializer {
                 "identifier" : identifierString
             ] as [String : Any]
             
-            if let _ = data {
-                let JSONData = try JSONSerialization.data(withJSONObject: data!, options: JSONSerialization.WritingOptions(rawValue: 0))
+            if let dat = data {
+                
+                let JSONData = try JSONSerialization.data(withJSONObject: dat, options: JSONSerialization.WritingOptions(rawValue: 0))
                 guard let dataString = NSString(data: JSONData, encoding: String.Encoding.utf8.rawValue)
                       else { throw SerializationError.json }
                 
