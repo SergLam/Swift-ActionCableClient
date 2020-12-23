@@ -43,7 +43,7 @@ open class Channel: Hashable, Equatable {
     
     /// Subscribed
     open var isSubscribed : Bool {
-        return client.subscribed(uid)
+        return client?.subscribed(uid) ?? false
     }
     
     /// Unique Identifier
@@ -151,7 +151,7 @@ open class Channel: Hashable, Equatable {
     @discardableResult
     open func action(_ name: String, with params: [String: Any]? = nil) -> Swift.Error? {
         do {
-          try (client.action(name, on: self, with: params))
+          try (client?.action(name, on: self, with: params))
         // Consume the error and return false if the error is a not subscribed
         // error and we are buffering the actions.
         } catch TransmitError.notSubscribed where self.shouldBufferActions {
@@ -176,7 +176,7 @@ open class Channel: Hashable, Equatable {
     /// channel.subscribe()
     /// ```
     open func subscribe() {
-        client.subscribe(self)
+        client?.subscribe(self)
     }
     
     /// Unsubscribe from the channel on the server.
@@ -187,11 +187,11 @@ open class Channel: Hashable, Equatable {
     /// channel.unsubscribe()
     /// ```
     open func unsubscribe() {
-        client.unsubscribe(self)
+        client?.unsubscribe(self)
     }
     
     internal var onReceiveActionHooks: Dictionary<String, OnReceiveClosure> = Dictionary()
-    internal unowned var client: ActionCableClient
+    internal weak var client: ActionCableClient?
     internal var actionBuffer: Array<Action> = Array()
     
     public func hash(into hasher: inout Hasher) {
