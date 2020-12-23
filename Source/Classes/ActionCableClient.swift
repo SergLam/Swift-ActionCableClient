@@ -336,6 +336,7 @@ extension ActionCableClient {
                 
             case .disconnected(let reason, let code):
                 
+                self?.isConnected = false
                 let userInfo: [String: Any] = [NSLocalizedDescriptionKey: reason,
                                                NSLocalizedFailureReasonErrorKey: reason]
                 let error: NSError = NSError(domain: "com.action-cable.serg-lam", code: Int(code), userInfo: userInfo)
@@ -363,8 +364,10 @@ extension ActionCableClient {
                 
             case .viabilityChanged:
                 break
+                
             case .reconnectSuggested:
-                break
+                self?.reconnect()
+                
             case .cancelled:
                 self?.isConnected = false
             }
