@@ -362,14 +362,19 @@ extension ActionCableClient {
                 }
                 self?.onDisconnected?(ConnectionError.unknown(err))
                 
-            case .viabilityChanged:
-                break
+            case .viabilityChanged(let isAvailable):
+                
+                if !isAvailable {
+                    self?.isConnected = false
+                    self?.onDisconnected?(ConnectionError.none)
+                }
                 
             case .reconnectSuggested:
                 self?.reconnect()
                 
             case .cancelled:
                 self?.isConnected = false
+                self?.onDisconnected?(ConnectionError.none)
             }
         }
         
