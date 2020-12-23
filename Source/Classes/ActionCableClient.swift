@@ -340,7 +340,8 @@ extension ActionCableClient {
                 let userInfo: [String: Any] = [NSLocalizedDescriptionKey: reason,
                                                NSLocalizedFailureReasonErrorKey: reason]
                 let error: NSError = NSError(domain: "com.action-cable.serg-lam", code: Int(code), userInfo: userInfo)
-                self?.didDisconnect(error)
+                self?.didDisconnect(ConnectionError.unknown(error))
+                self?.onDisconnected?(ConnectionError.unknown(TransmitError.notConnected))
                 
             case .text(let text):
                 self?.onText(text)
@@ -354,19 +355,17 @@ extension ActionCableClient {
             case .ping:
                 self?.onPing?()
                 
-            case .error(let error):
+            case .error:
                 self?.isConnected = false
-                guard let err = error else {
-                    self?.onDisconnected?(ConnectionError.none)
-                    return
-                }
-                self?.onDisconnected?(ConnectionError.unknown(err))
+                let error: ConnectionError = ConnectionError.unknown(TransmitError.notConnected)
+                self?.didDisconnect(error)
+                self?.onDisconnected?(error)
                 
             case .viabilityChanged(let isAvailable):
                 
                 if !isAvailable {
                     self?.isConnected = false
-                    self?.onDisconnected?(ConnectionError.none)
+                    self?.onDisconnected?(ConnectionError.unknown(TransmitError.notConnected))
                 }
                 
             case .reconnectSuggested:
@@ -374,7 +373,9 @@ extension ActionCableClient {
                 
             case .cancelled:
                 self?.isConnected = false
-                self?.onDisconnected?(ConnectionError.none)
+                let error: ConnectionError = ConnectionError.unknown(TransmitError.notConnected)
+                self?.didDisconnect(error)
+                self?.onDisconnected?(error)
             }
         }
         
